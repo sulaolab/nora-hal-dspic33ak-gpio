@@ -29,7 +29,7 @@ has been validated for:
 * LED output
 * button input
 * external SPI-flash control pins (chip-select / reset / write-protect)
-* UART1 pin pre-configuration
+* UART1 / UART2 pin pre-configuration
 * ADC analog input pre-configuration
 * TDM / I2S peripheral pin pre-configuration
 
@@ -211,6 +211,60 @@ void __attribute__((__interrupt__, __no_auto_psv__)) _CNBInterrupt(void)
     dspic33ak_gpio_event_process_isr();
 }
 ```
+
+## PPS routing (peripheral pin select)
+
+`dspic33ak_pps.*` is an optional companion module that maps a peripheral signal
+to or from a Remappable-Pin (RPn). It is compiled only when the board routes
+peripherals through PPS. The board layer owns the policy — which signal maps to
+which RP pin — and uses the *same* RPn for the GPIO attribute call and the PPS
+route, so the two refer to the pin identically:
+
+```c
+#define BOARD_UART1_TX_RP  (114u)   /* U1TX -> RH1 */
+#define BOARD_UART1_RX_RP  (50u)    /* U1RX <- RD1 */
+
+dspic33ak_gpio_rp_config_digital_output(BOARD_UART1_TX_RP, true);   /* GPIO first */
+dspic33ak_pps_route_output(DSPIC33AK_PPS_OUTPUT_U1TX, BOARD_UART1_TX_RP);
+
+dspic33ak_gpio_rp_config_digital_input(BOARD_UART1_RX_RP);
+dspic33ak_pps_route_input(DSPIC33AK_PPS_INPUT_U1RX, BOARD_UART1_RX_RP);
+```
+
+API:
+
+* `dspic33ak_pps_route_output(signal, rp)` — drive a peripheral output onto RPn.
+  Returns `false` (routing nothing) if the signal or the RP pin is not defined
+  on the selected device.
+* `dspic33ak_pps_route_input(signal, rp)` — feed a peripheral input from RPn.
+  Rejects an `rp` that is not a physical pin on the device (returns `false`
+  before writing).
+* `dspic33ak_pps_unlock()` / `dspic33ak_pps_lock()` — the RPCON.IOLOCK gate. The
+  `route_*` functions open and close it themselves; these are exposed only for
+  code that writes PPS registers directly.
+
+The signal enums (`dspic33ak_pps_output_t` / `dspic33ak_pps_input_t`) carry the
+signals this codebase currently needs — UART (U1TX/U2TX, U1RX/U2RX), SPI1/2
+(SS/SCK/SDO/SDI), SPI4 (SCK/SDO/SDI), CLC1-3, PWM (1H/2H/3H and 5H/5L..8H/8L),
+REFI1, and CAN1 (TX/RX). They are **not** every PPS-capable peripheral the
+device supports.
+
+### Adding a signal
+
+Extend the enum, then add the matching device-guarded case — no part-number
+conditionals:
+
+1. Add an enumerator to `dspic33ak_pps_output_t` (outputs) or
+   `dspic33ak_pps_input_t` (inputs) in `dspic33ak_pps.h`.
+2. Add the matching `#ifdef`-guarded case in `dspic33ak_pps.c`:
+   * output: `#ifdef _RPOUT_<sig>` → `case ...: *code = (uint8_t)_RPOUT_<sig>; return true;`
+   * input:  `#ifdef _<sig>R`      → `case ...: _<sig>R = rp; break;`
+
+Device adaptation is entirely by these `#ifdef`s on the XC-DSC header macros
+(output function code `_RPOUT_<sig>`, output pin register `_RP<nn>R`,
+input-select register `_<sig>R`). A signal or RP the selected device header does
+not define is simply left out of the switch and the route call returns `false`.
+(U2TX / U2RX were added exactly this way.)
 
 ## API summary
 

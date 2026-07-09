@@ -48,6 +48,9 @@ static bool dspic33ak_pps_get_output_code(dspic33ak_pps_output_t output, uint8_t
 #ifdef _RPOUT_U1TX
     case DSPIC33AK_PPS_OUTPUT_U1TX: *code = (uint8_t)_RPOUT_U1TX; return true;
 #endif
+#ifdef _RPOUT_U2TX
+    case DSPIC33AK_PPS_OUTPUT_U2TX: *code = (uint8_t)_RPOUT_U2TX; return true;
+#endif
 #ifdef _RPOUT_SS1
     case DSPIC33AK_PPS_OUTPUT_SS1:  *code = (uint8_t)_RPOUT_SS1;  return true;
 #endif
@@ -963,6 +966,9 @@ bool dspic33ak_pps_route_input(dspic33ak_pps_input_t input, dspic33ak_gpio_rp_t 
     {
 #ifdef _U1RXR
     case DSPIC33AK_PPS_INPUT_U1RX: _U1RXR = rp; break;
+#endif
+#ifdef _U2RXR
+    case DSPIC33AK_PPS_INPUT_U2RX: _U2RXR = rp; break;
 #endif
 #ifdef _SS1R
     case DSPIC33AK_PPS_INPUT_SS1:  _SS1R  = rp; break;
