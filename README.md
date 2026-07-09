@@ -244,9 +244,10 @@ API:
   code that writes PPS registers directly.
 
 The signal enums (`dspic33ak_pps_output_t` / `dspic33ak_pps_input_t`) carry the
-signals this codebase currently needs — UART (U1TX/U2TX, U1RX/U2RX), SPI1/2/4
-(SS/SCK/SDO/SDI), CLC1-3, PWM (1H/2H/3H and 5H/5L..8H/8L), REFI1, and CAN1
-(TX/RX). They are **not** every PPS-capable peripheral the device supports.
+signals this codebase currently needs — UART (U1TX/U2TX, U1RX/U2RX), SPI1/2
+(SS/SCK/SDO/SDI), SPI4 (SCK/SDO/SDI), CLC1-3, PWM (1H/2H/3H and 5H/5L..8H/8L),
+REFI1, and CAN1 (TX/RX). They are **not** every PPS-capable peripheral the
+device supports.
 
 ### Adding a signal
 
