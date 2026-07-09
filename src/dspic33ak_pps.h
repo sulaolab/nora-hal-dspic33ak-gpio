@@ -32,7 +32,7 @@
  * add a separate virtual-output API rather than overloading this GPIO-typed one.
  * route_input() rejects an rp that is not a physical pin on this device (returns
  * false before writing). The peripheral-SIGNAL enums contain the signals currently
- * required by this codebase (U1TX/RX, SPI1/2/4, CLC1-3, PWM1H/2H/3H,
+ * required by this codebase (U1TX/RX, U2TX/RX, SPI1/2/4, CLC1-3, PWM1H/2H/3H,
  * PWM5H/5L-8H/8L, REFI1, CAN1TX/RX); they do NOT represent every PPS-capable
  * peripheral the device supports. Add a new signal by extending the enum and the
  * matching case in dspic33ak_pps.c. Routing a signal absent on the selected
@@ -65,6 +65,7 @@ extern "C" {
 typedef enum
 {
     DSPIC33AK_PPS_OUTPUT_U1TX,
+    DSPIC33AK_PPS_OUTPUT_U2TX,
 
     DSPIC33AK_PPS_OUTPUT_SS1,
     DSPIC33AK_PPS_OUTPUT_SCK1,
@@ -104,6 +105,7 @@ typedef enum
 typedef enum
 {
     DSPIC33AK_PPS_INPUT_U1RX,
+    DSPIC33AK_PPS_INPUT_U2RX,
 
     DSPIC33AK_PPS_INPUT_SS1,
     DSPIC33AK_PPS_INPUT_SCK1,
