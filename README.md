@@ -1,4 +1,4 @@
-# dspic33ak-gpio-hal
+# dspic33ak-hal-gpio
 
 > Want to run it on hardware first?
 > Start with [dspic33ak-hal-starter](https://github.com/sulaolab/dspic33ak-hal-starter),
