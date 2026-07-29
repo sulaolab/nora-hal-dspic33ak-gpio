@@ -44,7 +44,7 @@ Confirmed operations on the validation target:
 * Input read (PORT) and output-latch read-back (LAT), 3-state level result
 * RP-first addressing (RPn) over the packed-pin core
 * Optional PPS peripheral-pin routing (companion `dspic33ak_pps.*`), exercised by
-  the SPI / UART / TDM pin routing in the perseus board project
+  the SPI / UART / TDM pin routing in the upstream audio board project
 * Optional GPIO CN event dispatch layer, validated in `dspic33ak-hal-starter`
 
 ## Design policy
