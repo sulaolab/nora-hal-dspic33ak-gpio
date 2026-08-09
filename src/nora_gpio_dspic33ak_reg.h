@@ -1,5 +1,5 @@
-#ifndef DSPIC33AK_GPIO_REG_H
-#define DSPIC33AK_GPIO_REG_H
+#ifndef NORA_GPIO_REG_H
+#define NORA_GPIO_REG_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -17,27 +17,27 @@
  *
  * These accessors are plain read-modify-write. They do NOT disable interrupts.
  * If the same LAT port is updated from both main-line code and an ISR, the
- * caller is responsible for the mutual exclusion (see dspic33ak_gpio.h).
+ * caller is responsible for the mutual exclusion (see nora_gpio.h).
  */
 
-static inline void dspic33ak_gpio_reg_set(volatile uint32_t *reg, uint32_t mask)
+static inline void nora_gpio_reg_set(volatile uint32_t *reg, uint32_t mask)
 {
     *reg |= mask;
 }
 
-static inline void dspic33ak_gpio_reg_clear(volatile uint32_t *reg, uint32_t mask)
+static inline void nora_gpio_reg_clear(volatile uint32_t *reg, uint32_t mask)
 {
     *reg &= ~mask;
 }
 
-static inline void dspic33ak_gpio_reg_toggle(volatile uint32_t *reg, uint32_t mask)
+static inline void nora_gpio_reg_toggle(volatile uint32_t *reg, uint32_t mask)
 {
     *reg ^= mask;
 }
 
-static inline bool dspic33ak_gpio_reg_is_set(volatile uint32_t *reg, uint32_t mask)
+static inline bool nora_gpio_reg_is_set(volatile uint32_t *reg, uint32_t mask)
 {
     return ((*reg & mask) != 0u);
 }
 
-#endif /* DSPIC33AK_GPIO_REG_H */
+#endif /* NORA_GPIO_REG_H */

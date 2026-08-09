@@ -1,7 +1,7 @@
 /*
- * dspic33ak_pps.c
+ * nora_pps_dspic33ak.c
  * ---------------
- * PPS routing implementation. See dspic33ak_pps.h for the layering and contract.
+ * NORA PPS routing backend. See nora_pps.h for the layering and contract.
  *
  * Device adaptation is by #ifdef on the XC macros themselves:
  *   - output function code : _RPOUT_<sig>   (e.g. _RPOUT_SCK2)
@@ -11,7 +11,8 @@
  * relevant switch and the call returns false -- no per-device part-number conditionals.
  */
 
-#include "dspic33ak_pps.h"
+#include "nora_pps.h"
+#include "nora_gpio.h"   /* nora_gpio_rp_config_digital_input/output (pinmux helpers) */
 
 #include <xc.h>
 
@@ -22,12 +23,12 @@
 // dsPIC33A guards RPCON via the PAC, which leaves RPCON writable out of reset
 // (RPCONLK=0, RPCONWR=1), so IOLOCK is set/cleared by a direct write
 // (__builtin_write_RPCON() is unsupported on this XC-DSC target).
-void dspic33ak_pps_unlock(void)
+void nora_pps_unlock(void)
 {
     RPCONbits.IOLOCK = 0u;   /* PPS writable  */
 }
 
-void dspic33ak_pps_lock(void)
+void nora_pps_lock(void)
 {
     RPCONbits.IOLOCK = 1u;   /* PPS protected */
 }
@@ -36,7 +37,7 @@ void dspic33ak_pps_lock(void)
 //===========================================================
 // Local: peripheral output -> RPORx function code (_RPOUT_*)
 //===========================================================
-static bool dspic33ak_pps_get_output_code(dspic33ak_pps_output_t output, uint8_t *code)
+static bool nora_pps_get_output_code(nora_pps_output_t output, uint8_t *code)
 {
     if (code == NULL)
     {
@@ -46,79 +47,91 @@ static bool dspic33ak_pps_get_output_code(dspic33ak_pps_output_t output, uint8_t
     switch (output)
     {
 #ifdef _RPOUT_U1TX
-    case DSPIC33AK_PPS_OUTPUT_U1TX: *code = (uint8_t)_RPOUT_U1TX; return true;
+    case NORA_PPS_OUTPUT_U1TX: *code = (uint8_t)_RPOUT_U1TX; return true;
 #endif
 #ifdef _RPOUT_U2TX
-    case DSPIC33AK_PPS_OUTPUT_U2TX: *code = (uint8_t)_RPOUT_U2TX; return true;
+    case NORA_PPS_OUTPUT_U2TX: *code = (uint8_t)_RPOUT_U2TX; return true;
 #endif
 #ifdef _RPOUT_SS1
-    case DSPIC33AK_PPS_OUTPUT_SS1:  *code = (uint8_t)_RPOUT_SS1;  return true;
+    case NORA_PPS_OUTPUT_SS1:  *code = (uint8_t)_RPOUT_SS1;  return true;
 #endif
 #ifdef _RPOUT_SCK1
-    case DSPIC33AK_PPS_OUTPUT_SCK1: *code = (uint8_t)_RPOUT_SCK1; return true;
+    case NORA_PPS_OUTPUT_SCK1: *code = (uint8_t)_RPOUT_SCK1; return true;
 #endif
 #ifdef _RPOUT_SDO1
-    case DSPIC33AK_PPS_OUTPUT_SDO1: *code = (uint8_t)_RPOUT_SDO1; return true;
+    case NORA_PPS_OUTPUT_SDO1: *code = (uint8_t)_RPOUT_SDO1; return true;
 #endif
 #ifdef _RPOUT_SS2
-    case DSPIC33AK_PPS_OUTPUT_SS2:  *code = (uint8_t)_RPOUT_SS2;  return true;
+    case NORA_PPS_OUTPUT_SS2:  *code = (uint8_t)_RPOUT_SS2;  return true;
 #endif
 #ifdef _RPOUT_SCK2
-    case DSPIC33AK_PPS_OUTPUT_SCK2: *code = (uint8_t)_RPOUT_SCK2; return true;
+    case NORA_PPS_OUTPUT_SCK2: *code = (uint8_t)_RPOUT_SCK2; return true;
 #endif
 #ifdef _RPOUT_SDO2
-    case DSPIC33AK_PPS_OUTPUT_SDO2: *code = (uint8_t)_RPOUT_SDO2; return true;
+    case NORA_PPS_OUTPUT_SDO2: *code = (uint8_t)_RPOUT_SDO2; return true;
+#endif
+#ifdef _RPOUT_SS3
+    case NORA_PPS_OUTPUT_SS3:  *code = (uint8_t)_RPOUT_SS3;  return true;
+#endif
+#ifdef _RPOUT_SCK3
+    case NORA_PPS_OUTPUT_SCK3: *code = (uint8_t)_RPOUT_SCK3; return true;
+#endif
+#ifdef _RPOUT_SDO3
+    case NORA_PPS_OUTPUT_SDO3: *code = (uint8_t)_RPOUT_SDO3; return true;
+#endif
+#ifdef _RPOUT_SS4
+    case NORA_PPS_OUTPUT_SS4:  *code = (uint8_t)_RPOUT_SS4;  return true;
 #endif
 #ifdef _RPOUT_SCK4
-    case DSPIC33AK_PPS_OUTPUT_SCK4: *code = (uint8_t)_RPOUT_SCK4; return true;
+    case NORA_PPS_OUTPUT_SCK4: *code = (uint8_t)_RPOUT_SCK4; return true;
 #endif
 #ifdef _RPOUT_SDO4
-    case DSPIC33AK_PPS_OUTPUT_SDO4: *code = (uint8_t)_RPOUT_SDO4; return true;
+    case NORA_PPS_OUTPUT_SDO4: *code = (uint8_t)_RPOUT_SDO4; return true;
 #endif
 #ifdef _RPOUT_CLC1OUT
-    case DSPIC33AK_PPS_OUTPUT_CLC1: *code = (uint8_t)_RPOUT_CLC1OUT; return true;
+    case NORA_PPS_OUTPUT_CLC1: *code = (uint8_t)_RPOUT_CLC1OUT; return true;
 #endif
 #ifdef _RPOUT_CLC2OUT
-    case DSPIC33AK_PPS_OUTPUT_CLC2: *code = (uint8_t)_RPOUT_CLC2OUT; return true;
+    case NORA_PPS_OUTPUT_CLC2: *code = (uint8_t)_RPOUT_CLC2OUT; return true;
 #endif
 #ifdef _RPOUT_CLC3OUT
-    case DSPIC33AK_PPS_OUTPUT_CLC3: *code = (uint8_t)_RPOUT_CLC3OUT; return true;
+    case NORA_PPS_OUTPUT_CLC3: *code = (uint8_t)_RPOUT_CLC3OUT; return true;
 #endif
 #ifdef _RPOUT_PWM1H
-    case DSPIC33AK_PPS_OUTPUT_PWM1H: *code = (uint8_t)_RPOUT_PWM1H; return true;
+    case NORA_PPS_OUTPUT_PWM1H: *code = (uint8_t)_RPOUT_PWM1H; return true;
 #endif
 #ifdef _RPOUT_PWM2H
-    case DSPIC33AK_PPS_OUTPUT_PWM2H: *code = (uint8_t)_RPOUT_PWM2H; return true;
+    case NORA_PPS_OUTPUT_PWM2H: *code = (uint8_t)_RPOUT_PWM2H; return true;
 #endif
 #ifdef _RPOUT_PWM3H
-    case DSPIC33AK_PPS_OUTPUT_PWM3H: *code = (uint8_t)_RPOUT_PWM3H; return true;
+    case NORA_PPS_OUTPUT_PWM3H: *code = (uint8_t)_RPOUT_PWM3H; return true;
 #endif
 #ifdef _RPOUT_PWM5H
-    case DSPIC33AK_PPS_OUTPUT_PWM5H: *code = (uint8_t)_RPOUT_PWM5H; return true;
+    case NORA_PPS_OUTPUT_PWM5H: *code = (uint8_t)_RPOUT_PWM5H; return true;
 #endif
 #ifdef _RPOUT_PWM5L
-    case DSPIC33AK_PPS_OUTPUT_PWM5L: *code = (uint8_t)_RPOUT_PWM5L; return true;
+    case NORA_PPS_OUTPUT_PWM5L: *code = (uint8_t)_RPOUT_PWM5L; return true;
 #endif
 #ifdef _RPOUT_PWM6H
-    case DSPIC33AK_PPS_OUTPUT_PWM6H: *code = (uint8_t)_RPOUT_PWM6H; return true;
+    case NORA_PPS_OUTPUT_PWM6H: *code = (uint8_t)_RPOUT_PWM6H; return true;
 #endif
 #ifdef _RPOUT_PWM6L
-    case DSPIC33AK_PPS_OUTPUT_PWM6L: *code = (uint8_t)_RPOUT_PWM6L; return true;
+    case NORA_PPS_OUTPUT_PWM6L: *code = (uint8_t)_RPOUT_PWM6L; return true;
 #endif
 #ifdef _RPOUT_PWM7H
-    case DSPIC33AK_PPS_OUTPUT_PWM7H: *code = (uint8_t)_RPOUT_PWM7H; return true;
+    case NORA_PPS_OUTPUT_PWM7H: *code = (uint8_t)_RPOUT_PWM7H; return true;
 #endif
 #ifdef _RPOUT_PWM7L
-    case DSPIC33AK_PPS_OUTPUT_PWM7L: *code = (uint8_t)_RPOUT_PWM7L; return true;
+    case NORA_PPS_OUTPUT_PWM7L: *code = (uint8_t)_RPOUT_PWM7L; return true;
 #endif
 #ifdef _RPOUT_PWM8H
-    case DSPIC33AK_PPS_OUTPUT_PWM8H: *code = (uint8_t)_RPOUT_PWM8H; return true;
+    case NORA_PPS_OUTPUT_PWM8H: *code = (uint8_t)_RPOUT_PWM8H; return true;
 #endif
 #ifdef _RPOUT_PWM8L
-    case DSPIC33AK_PPS_OUTPUT_PWM8L: *code = (uint8_t)_RPOUT_PWM8L; return true;
+    case NORA_PPS_OUTPUT_PWM8L: *code = (uint8_t)_RPOUT_PWM8L; return true;
 #endif
 #ifdef _RPOUT_CAN1TX
-    case DSPIC33AK_PPS_OUTPUT_CAN1TX: *code = (uint8_t)_RPOUT_CAN1TX; return true;
+    case NORA_PPS_OUTPUT_CAN1TX: *code = (uint8_t)_RPOUT_CAN1TX; return true;
 #endif
     default:
         break;
@@ -138,7 +151,7 @@ static bool dspic33ak_pps_get_output_code(dspic33ak_pps_output_t output, uint8_t
 // output PPS register on this device returns false.
 // Flat register table by design -- RPORx numbering has gaps and is
 // device-specific, so a switch (not a formula) is the safe canonical form.
-static bool dspic33ak_pps_write_output_rp(dspic33ak_gpio_rp_t rp, uint8_t code)
+static bool nora_pps_write_output_rp(nora_gpio_rp_t rp, uint8_t code)
 {
     switch (rp)
     {
@@ -540,7 +553,7 @@ static bool dspic33ak_pps_write_output_rp(dspic33ak_gpio_rp_t rp, uint8_t code)
 // the device defines an output register (_RPnnR) for is a valid physical RP.
 // Used to validate the RP handed to route_input(); route_output()'s write switch
 // validates inherently. RPV virtual pins (RP129..) have no _RPnnR and are rejected.
-static bool dspic33ak_pps_rp_is_defined(dspic33ak_gpio_rp_t rp)
+static bool nora_pps_rp_is_defined(nora_gpio_rp_t rp)
 {
     switch (rp)
     {
@@ -938,78 +951,145 @@ static bool dspic33ak_pps_rp_is_defined(dspic33ak_gpio_rp_t rp)
 //===========================================================
 // Global
 //===========================================================
-bool dspic33ak_pps_route_output(dspic33ak_pps_output_t output, dspic33ak_gpio_rp_t rp)
+bool nora_pps_route_output(nora_pps_output_t output, nora_gpio_rp_t rp)
 {
     uint8_t code;
-    if (!dspic33ak_pps_get_output_code(output, &code))
+    if (!nora_pps_get_output_code(output, &code))
     {
         return false;
     }
 
-    dspic33ak_pps_unlock();
-    bool ok = dspic33ak_pps_write_output_rp(rp, code);
-    dspic33ak_pps_lock();
+    nora_pps_unlock();
+    bool ok = nora_pps_write_output_rp(rp, code);
+    nora_pps_lock();
     return ok;
 }
 
-bool dspic33ak_pps_route_input(dspic33ak_pps_input_t input, dspic33ak_gpio_rp_t rp)
+bool nora_pps_route_input(nora_pps_input_t input, nora_gpio_rp_t rp)
 {
     bool ok = true;
 
-    if (!dspic33ak_pps_rp_is_defined(rp))
+    if (!nora_pps_rp_is_defined(rp))
     {
         return false;   /* rp is not a physical remappable pin on this device */
     }
 
-    dspic33ak_pps_unlock();
+    nora_pps_unlock();
     switch (input)
     {
 #ifdef _U1RXR
-    case DSPIC33AK_PPS_INPUT_U1RX: _U1RXR = rp; break;
+    case NORA_PPS_INPUT_U1RX: _U1RXR = rp; break;
 #endif
 #ifdef _U2RXR
-    case DSPIC33AK_PPS_INPUT_U2RX: _U2RXR = rp; break;
+    case NORA_PPS_INPUT_U2RX: _U2RXR = rp; break;
 #endif
 #ifdef _SS1R
-    case DSPIC33AK_PPS_INPUT_SS1:  _SS1R  = rp; break;
+    case NORA_PPS_INPUT_SS1:  _SS1R  = rp; break;
 #endif
 #ifdef _SCK1R
-    case DSPIC33AK_PPS_INPUT_SCK1: _SCK1R = rp; break;
+    case NORA_PPS_INPUT_SCK1: _SCK1R = rp; break;
 #endif
 #ifdef _SDI1R
-    case DSPIC33AK_PPS_INPUT_SDI1: _SDI1R = rp; break;
+    case NORA_PPS_INPUT_SDI1: _SDI1R = rp; break;
 #endif
 #ifdef _SS2R
-    case DSPIC33AK_PPS_INPUT_SS2:  _SS2R  = rp; break;
+    case NORA_PPS_INPUT_SS2:  _SS2R  = rp; break;
 #endif
 #ifdef _SCK2R
-    case DSPIC33AK_PPS_INPUT_SCK2: _SCK2R = rp; break;
+    case NORA_PPS_INPUT_SCK2: _SCK2R = rp; break;
 #endif
 #ifdef _SDI2R
-    case DSPIC33AK_PPS_INPUT_SDI2: _SDI2R = rp; break;
+    case NORA_PPS_INPUT_SDI2: _SDI2R = rp; break;
+#endif
+#ifdef _SS3R
+    case NORA_PPS_INPUT_SS3:  _SS3R  = rp; break;
+#endif
+#ifdef _SCK3R
+    case NORA_PPS_INPUT_SCK3: _SCK3R = rp; break;
+#endif
+#ifdef _SDI3R
+    case NORA_PPS_INPUT_SDI3: _SDI3R = rp; break;
+#endif
+#ifdef _SS4R
+    case NORA_PPS_INPUT_SS4:  _SS4R  = rp; break;
+#endif
+#ifdef _SCK4R
+    case NORA_PPS_INPUT_SCK4: _SCK4R = rp; break;
 #endif
 #ifdef _SDI4R
-    case DSPIC33AK_PPS_INPUT_SDI4: _SDI4R = rp; break;
+    case NORA_PPS_INPUT_SDI4: _SDI4R = rp; break;
 #endif
 #ifdef _CLCINAR
-    case DSPIC33AK_PPS_INPUT_CLCINA: _CLCINAR = rp; break;
+    case NORA_PPS_INPUT_CLCINA: _CLCINAR = rp; break;
 #endif
 #ifdef _CLCINBR
-    case DSPIC33AK_PPS_INPUT_CLCINB: _CLCINBR = rp; break;
+    case NORA_PPS_INPUT_CLCINB: _CLCINBR = rp; break;
 #endif
 #ifdef _CLCINCR
-    case DSPIC33AK_PPS_INPUT_CLCINC: _CLCINCR = rp; break;
+    case NORA_PPS_INPUT_CLCINC: _CLCINCR = rp; break;
 #endif
 #ifdef _REFI1R
-    case DSPIC33AK_PPS_INPUT_REFI1: _REFI1R = rp; break;
+    case NORA_PPS_INPUT_REFI1: _REFI1R = rp; break;
 #endif
 #ifdef _CAN1RXR
-    case DSPIC33AK_PPS_INPUT_CAN1RX: _CAN1RXR = rp; break;
+    case NORA_PPS_INPUT_CAN1RX: _CAN1RXR = rp; break;
+#endif
+#ifdef _ICM1R
+    case NORA_PPS_INPUT_ICM1: _ICM1R = rp; break;
+#endif
+#ifdef _ICM2R
+    case NORA_PPS_INPUT_ICM2: _ICM2R = rp; break;
+#endif
+#ifdef _ICM3R
+    case NORA_PPS_INPUT_ICM3: _ICM3R = rp; break;
+#endif
+#ifdef _ICM4R
+    case NORA_PPS_INPUT_ICM4: _ICM4R = rp; break;
+#endif
+#ifdef _ICM5R
+    case NORA_PPS_INPUT_ICM5: _ICM5R = rp; break;
+#endif
+#ifdef _ICM6R
+    case NORA_PPS_INPUT_ICM6: _ICM6R = rp; break;
+#endif
+#ifdef _ICM7R
+    case NORA_PPS_INPUT_ICM7: _ICM7R = rp; break;
+#endif
+#ifdef _ICM8R
+    case NORA_PPS_INPUT_ICM8: _ICM8R = rp; break;
+#endif
+#ifdef _ICM9R
+    case NORA_PPS_INPUT_ICM9: _ICM9R = rp; break;
 #endif
     default:
         ok = false;   /* peripheral input not available on this device */
         break;
     }
-    dspic33ak_pps_lock();
+    nora_pps_lock();
     return ok;
+}
+
+
+/*
+ * Combined pinmux helpers: digital-configure the pin, then route the PPS signal. See the header
+ * for the contract. These reuse the low-level GPIO and PPS APIs as-is (no register duplication);
+ * the GPIO configuration runs first so the glitch-aware order is preserved for outputs.
+ */
+bool nora_pinmux_route_input(nora_pps_input_t function, nora_gpio_rp_t rp)
+{
+    if (!nora_gpio_rp_config_digital_input(rp))
+    {
+        return false;
+    }
+    return nora_pps_route_input(function, rp);
+}
+
+bool nora_pinmux_route_output(nora_pps_output_t function, nora_gpio_rp_t rp,
+                                   bool initial_high)
+{
+    if (!nora_gpio_rp_config_digital_output(rp, initial_high))
+    {
+        return false;
+    }
+    return nora_pps_route_output(function, rp);
 }
