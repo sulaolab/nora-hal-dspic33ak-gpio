@@ -33,8 +33,9 @@ GPIO layer that is easy to read, test, modify, and adapt.
 The public API is `nora_*` / `NORA_*`. It replaces the `dspic33ak_*` /
 `DSPIC33AK_*` namespace this repository used before 2026-08, and **there are no
 compatibility aliases** — a consumer moving to this version renames its call
-sites. The rename is purely textual: `dspic33ak_` → `nora_`,
-`DSPIC33AK_` → `NORA_`.
+sites. The **public** namespace migration is textual: `dspic33ak_` → `nora_`,
+`DSPIC33AK_` → `NORA_`. It is not a tree-wide substitution — backend-private
+names deliberately retain the silicon tag, as below.
 
 The chip name survives in exactly two places, both deliberate:
 
