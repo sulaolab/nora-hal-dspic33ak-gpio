@@ -4,18 +4,18 @@
 /*
  * nora_gpio.h
  * ----------------
- * Nora GPIO HAL public API.
+ * NORA GPIO HAL public API.
  *
  * Portability scope:
- *   This interface minimizes application changes between Nora-supported
+ *   This interface minimizes application changes between NORA-supported
  *   dsPIC33AK and dsPIC33CK ports. It is not a universal, arbitrary-processor
  *   GPIO HAL: electrical capabilities, available ports, RP numbering, and the
- *   packed-pin representation remain properties of the selected Nora port and
+ *   packed-pin representation remain properties of the selected NORA port and
  *   board. Keep physical identifiers in the board pin map rather than
  *   scattering them through feature code.
  *
  * API orientation (two layers, both declared in this header):
- *   1. RP-first API (PREFERRED for normal Nora board / application code) --
+ *   1. RP-first API (PREFERRED for normal NORA board / application code) --
  *      address a pin by its Remappable-Pin number, the same RPn used by the PPS
  *      map (see the RP-first section near the bottom), e.g.:
  *          nora_gpio_rp_config_digital_output(101u, false); // RP101

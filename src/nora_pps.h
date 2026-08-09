@@ -4,8 +4,8 @@
 /*
  * nora_pps.h
  * ---------------
- * Peripheral Pin Select (PPS) routing -- the companion to the Nora GPIO HAL
- * (same hal_gpio family). Nora GPIO owns the pin's ELECTRICAL attributes
+ * Peripheral Pin Select (PPS) routing -- the companion to the NORA GPIO HAL
+ * (same hal_gpio family). NORA GPIO owns the pin's ELECTRICAL attributes
  * (TRIS/LAT/ANSEL/pull/OD); this module owns the SIGNAL ROUTING (which RP pin a
  * peripheral input reads from / a peripheral output drives), i.e. the RPINRx
  * (input-select) and RPORx (output _RPnnR) registers.

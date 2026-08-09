@@ -1,7 +1,7 @@
 /*
  * nora_gpio_dspic33ak.c
  * ----------------
- * Small, readable NORA GPIO backend for dsPIC33A devices. See nora_gpio.h for the
+ * Small, readable NORA GPIO backend for dsPIC33AK devices. See nora_gpio.h for the
  * public contract, pin addressing, and interrupt-safety policy.
  *
  * Implementation notes:

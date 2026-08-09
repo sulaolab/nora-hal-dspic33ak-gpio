@@ -1,8 +1,10 @@
 # nora-hal-dspic33ak-gpio
 
+**NORA-HAL** — *Native On-chip Resource Assistant*
+
 Small, readable GPIO and PPS HAL for Microchip dsPIC33AK devices — part of
-**NORA-HAL** (Native On-chip Resource Assistant), a HAL family whose public API
-is namespaced `nora_*` / `NORA_*`.
+**NORA-HAL**, a HAL family whose public API is namespaced `nora_*` /
+`NORA_*`.
 
 > Want to run it on hardware first?
 > Start with [dspic33ak-hal-starter](https://github.com/sulaolab/dspic33ak-hal-starter),
@@ -14,6 +16,13 @@ is namespaced `nora_*` / `NORA_*`.
 > `dspic33ak-hal-starter`, which is in turn byte-identical to the audio-board
 > project that runs these sources on hardware. Fixes flow *into* here from that
 > validated tree — see [docs/nora_migration.md](docs/nora_migration.md).
+>
+> **One exception, 2026-08-09.** Comments and the folder README under `src/` were
+> corrected *here first*, ahead of the upstream tree: stale file names left behind by
+> the rename, `Nora` where the family name is `NORA`, and `dsPIC33A` where the text
+> means the dsPIC33AK backend. **No executable code changed.** The same corrections are
+> queued for upstream; the files are listed in
+> [docs/nora_migration.md](docs/nora_migration.md).
 
 This project is intended as a compact alternative to large generated driver code.
 The goal is not to hide everything behind a framework, but to provide a simple
