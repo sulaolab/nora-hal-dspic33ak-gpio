@@ -16,6 +16,13 @@
 
 #include <xc.h>
 
+/* Virtual RP range (RPV0..RPV15). Padless PPS endpoints; see the header. The bounds
+ * are only a fast reject -- which of them the selected device actually has is decided
+ * per register by nora_pps_rpv_is_defined(), because dsPIC33AK128MC106 has none of
+ * them (its output registers stop at _RP80R). */
+#define NORA_PPS_RPV_MIN 129u
+#define NORA_PPS_RPV_MAX 144u
+
 
 //===========================================================
 // PPS lock gate (RPCON.IOLOCK)
@@ -133,6 +140,87 @@ static bool nora_pps_get_output_code(nora_pps_output_t output, uint8_t *code)
 #ifdef _RPOUT_CAN1TX
     case NORA_PPS_OUTPUT_CAN1TX: *code = (uint8_t)_RPOUT_CAN1TX; return true;
 #endif
+#ifdef _RPOUT_CAN2TX
+    case NORA_PPS_OUTPUT_CAN2TX: *code = (uint8_t)_RPOUT_CAN2TX; return true;
+#endif
+#ifdef _RPOUT_U3TX
+    case NORA_PPS_OUTPUT_U3TX: *code = (uint8_t)_RPOUT_U3TX; return true;
+#endif
+#ifdef _RPOUT_CLC4OUT
+    case NORA_PPS_OUTPUT_CLC4:  *code = (uint8_t)_RPOUT_CLC4OUT;  return true;
+#endif
+#ifdef _RPOUT_CLC5OUT
+    case NORA_PPS_OUTPUT_CLC5:  *code = (uint8_t)_RPOUT_CLC5OUT;  return true;
+#endif
+#ifdef _RPOUT_CLC6OUT
+    case NORA_PPS_OUTPUT_CLC6:  *code = (uint8_t)_RPOUT_CLC6OUT;  return true;
+#endif
+#ifdef _RPOUT_CLC7OUT
+    case NORA_PPS_OUTPUT_CLC7:  *code = (uint8_t)_RPOUT_CLC7OUT;  return true;
+#endif
+#ifdef _RPOUT_CLC8OUT
+    case NORA_PPS_OUTPUT_CLC8:  *code = (uint8_t)_RPOUT_CLC8OUT;  return true;
+#endif
+#ifdef _RPOUT_CLC9OUT
+    case NORA_PPS_OUTPUT_CLC9:  *code = (uint8_t)_RPOUT_CLC9OUT;  return true;
+#endif
+#ifdef _RPOUT_CLC10OUT
+    case NORA_PPS_OUTPUT_CLC10: *code = (uint8_t)_RPOUT_CLC10OUT; return true;
+#endif
+#ifdef _RPOUT_PWM4H
+    case NORA_PPS_OUTPUT_PWM4H: *code = (uint8_t)_RPOUT_PWM4H; return true;
+#endif
+#ifdef _RPOUT_PWM4L
+    case NORA_PPS_OUTPUT_PWM4L: *code = (uint8_t)_RPOUT_PWM4L; return true;
+#endif
+    /* PWM event outputs. AK silicon spells these PEVTA..PEVTD; CK silicon calls
+     * the same signal PWMEA..PWMED. The enum name in nora_pps.h is the FUNCTION,
+     * so the family-specific spelling is resolved here and nowhere else. */
+#ifdef _RPOUT_PEVTA
+    case NORA_PPS_OUTPUT_PWM_EVENT_A: *code = (uint8_t)_RPOUT_PEVTA; return true;
+#endif
+#ifdef _RPOUT_PEVTB
+    case NORA_PPS_OUTPUT_PWM_EVENT_B: *code = (uint8_t)_RPOUT_PEVTB; return true;
+#endif
+#ifdef _RPOUT_PEVTC
+    case NORA_PPS_OUTPUT_PWM_EVENT_C: *code = (uint8_t)_RPOUT_PEVTC; return true;
+#endif
+#ifdef _RPOUT_PEVTD
+    case NORA_PPS_OUTPUT_PWM_EVENT_D: *code = (uint8_t)_RPOUT_PEVTD; return true;
+#endif
+#ifdef _RPOUT_CMP1
+    case NORA_PPS_OUTPUT_CMP1: *code = (uint8_t)_RPOUT_CMP1; return true;
+#endif
+#ifdef _RPOUT_CMP2
+    case NORA_PPS_OUTPUT_CMP2: *code = (uint8_t)_RPOUT_CMP2; return true;
+#endif
+#ifdef _RPOUT_CMP3
+    case NORA_PPS_OUTPUT_CMP3: *code = (uint8_t)_RPOUT_CMP3; return true;
+#endif
+#ifdef _RPOUT_CMP4
+    case NORA_PPS_OUTPUT_CMP4: *code = (uint8_t)_RPOUT_CMP4; return true;
+#endif
+#ifdef _RPOUT_CMP5
+    case NORA_PPS_OUTPUT_CMP5: *code = (uint8_t)_RPOUT_CMP5; return true;
+#endif
+#ifdef _RPOUT_CMP6
+    case NORA_PPS_OUTPUT_CMP6: *code = (uint8_t)_RPOUT_CMP6; return true;
+#endif
+#ifdef _RPOUT_CMP7
+    case NORA_PPS_OUTPUT_CMP7: *code = (uint8_t)_RPOUT_CMP7; return true;
+#endif
+#ifdef _RPOUT_CMP8
+    case NORA_PPS_OUTPUT_CMP8: *code = (uint8_t)_RPOUT_CMP8; return true;
+#endif
+    /* Reference clock outputs. Both AK parts spell these with the digit; the CK
+     * backend additionally accepts the digitless _RPOUT_REFO of single-REFO
+     * parts, which is why REFO1 is not simply guarded on one macro there. */
+#ifdef _RPOUT_REFO1
+    case NORA_PPS_OUTPUT_REFO1: *code = (uint8_t)_RPOUT_REFO1; return true;
+#endif
+#ifdef _RPOUT_REFO2
+    case NORA_PPS_OUTPUT_REFO2: *code = (uint8_t)_RPOUT_REFO2; return true;
+#endif
     default:
         break;
     }
@@ -145,12 +233,16 @@ static bool nora_pps_get_output_code(nora_pps_output_t output, uint8_t *code)
 //===========================================================
 // _RPnnR is a bit-field alias (assignment only; no address / no formula). Every
 // RP for which the selected device defines an output register (_RPnnR) is
-// listed (physical RP1..RP128 only, each #ifdef-guarded so only the device's
-// real registers compile). The RPV virtual outputs RP129..RP144 are excluded:
-// this API is typed for physical GPIO RPs (see the header). An RP with no
-// output PPS register on this device returns false.
+// listed -- physical RP1..RP128 AND the virtual RPV0..RPV15 (RP129..RP144) at the
+// end, each #ifdef-guarded so only the device's real registers compile. An RP with
+// no output PPS register on this device returns false.
 // Flat register table by design -- RPORx numbering has gaps and is
 // device-specific, so a switch (not a formula) is the safe canonical form.
+//
+// The virtual pins belong in THIS switch rather than a parallel one because the
+// operation is identical: same _RPnnR alias, same 6-bit function code. The only
+// difference is that no GPIO configuration precedes them, and that difference lives
+// in nora_pinmux_route_*() -- which configures, and therefore refuses them.
 static bool nora_pps_write_output_rp(nora_gpio_rp_t rp, uint8_t code)
 {
     switch (rp)
@@ -539,10 +631,147 @@ static bool nora_pps_write_output_rp(nora_gpio_rp_t rp, uint8_t code)
 #ifdef _RP128R
     case 128u: _RP128R = code; return true;
 #endif
+    /* Virtual pins RPV0..RPV15 (RP129..RP144): padless on-chip routing endpoints.
+     * Absent entirely on dsPIC33AK128MC106, so these all compile out there. */
+#ifdef _RP129R
+    case 129u: _RP129R = code; return true;
+#endif
+#ifdef _RP130R
+    case 130u: _RP130R = code; return true;
+#endif
+#ifdef _RP131R
+    case 131u: _RP131R = code; return true;
+#endif
+#ifdef _RP132R
+    case 132u: _RP132R = code; return true;
+#endif
+#ifdef _RP133R
+    case 133u: _RP133R = code; return true;
+#endif
+#ifdef _RP134R
+    case 134u: _RP134R = code; return true;
+#endif
+#ifdef _RP135R
+    case 135u: _RP135R = code; return true;
+#endif
+#ifdef _RP136R
+    case 136u: _RP136R = code; return true;
+#endif
+#ifdef _RP137R
+    case 137u: _RP137R = code; return true;
+#endif
+#ifdef _RP138R
+    case 138u: _RP138R = code; return true;
+#endif
+#ifdef _RP139R
+    case 139u: _RP139R = code; return true;
+#endif
+#ifdef _RP140R
+    case 140u: _RP140R = code; return true;
+#endif
+#ifdef _RP141R
+    case 141u: _RP141R = code; return true;
+#endif
+#ifdef _RP142R
+    case 142u: _RP142R = code; return true;
+#endif
+#ifdef _RP143R
+    case 143u: _RP143R = code; return true;
+#endif
+#ifdef _RP144R
+    case 144u: _RP144R = code; return true;
+#endif
     default:
         break;
     }
     return false;   /* RP has no output PPS register on this device */
+}
+
+
+//===========================================================
+// Local: is this RP a VIRTUAL endpoint the selected device defines?
+//===========================================================
+// Built from the same per-register #ifdef list as the write switch above, for the
+// same reason nora_pps_rp_is_defined() is: a range check would claim RPV0..RPV15
+// exist on dsPIC33AK128MC106, which stops at _RP80R and has no virtual band at all.
+// Fall-through cases, no bodies -- the switch IS the answer.
+static bool nora_pps_rpv_is_defined(nora_gpio_rp_t rp)
+{
+    if ((rp < NORA_PPS_RPV_MIN) || (rp > NORA_PPS_RPV_MAX))
+    {
+        return false;               /* fast reject; not in the virtual band */
+    }
+
+    switch (rp)
+    {
+#ifdef _RP129R
+    case 129u:
+#endif
+#ifdef _RP130R
+    case 130u:
+#endif
+#ifdef _RP131R
+    case 131u:
+#endif
+#ifdef _RP132R
+    case 132u:
+#endif
+#ifdef _RP133R
+    case 133u:
+#endif
+#ifdef _RP134R
+    case 134u:
+#endif
+#ifdef _RP135R
+    case 135u:
+#endif
+#ifdef _RP136R
+    case 136u:
+#endif
+#ifdef _RP137R
+    case 137u:
+#endif
+#ifdef _RP138R
+    case 138u:
+#endif
+#ifdef _RP139R
+    case 139u:
+#endif
+#ifdef _RP140R
+    case 140u:
+#endif
+#ifdef _RP141R
+    case 141u:
+#endif
+#ifdef _RP142R
+    case 142u:
+#endif
+#ifdef _RP143R
+    case 143u:
+#endif
+#ifdef _RP144R
+    case 144u:
+#endif
+        return true;
+    default:
+        break;
+    }
+    return false;
+}
+
+
+//===========================================================
+// Local: read the output function code from a physical RP pin's _RPnnR
+//===========================================================
+// dsPIC33AK RPORx registers pack four RP output codes into 8-bit slots, with
+// RP1 in the low slot of RPOR0. Callers first validate the RP against the
+// _RPnnR switch below, so this only reads a physical output PPS register.
+static uint8_t nora_pps_read_output_rp(nora_gpio_rp_t rp)
+{
+    volatile uint32_t *reg = (&RPOR0) + ((rp - 1u) / 4u);
+    const uint32_t pos = ((rp - 1u) % 4u) * 8u;
+
+    return (uint8_t)((*reg >> pos) & 0x7Fu);
 }
 
 
@@ -965,13 +1194,50 @@ bool nora_pps_route_output(nora_pps_output_t output, nora_gpio_rp_t rp)
     return ok;
 }
 
+bool nora_pps_find_output_rp(nora_pps_output_t output, nora_gpio_rp_t *rp)
+{
+    uint8_t want;
+
+    if (rp == NULL)
+    {
+        return false;
+    }
+    if (!nora_pps_get_output_code(output, &want))
+    {
+        return false;   /* peripheral output not available on this device */
+    }
+
+    /* PHYSICAL pins only, and deliberately so even though route_output() now accepts
+     * the virtual band: a caller asking "which pad is this signal on" does not want
+     * RPV0, and a caller that put the signal on a virtual endpoint did so itself and
+     * therefore already knows. Same rule as the CK backend.
+     * nora_pps_rp_is_defined() also skips any RP number without an output PPS
+     * register on the selected device. */
+    for (nora_gpio_rp_t candidate = 1u; candidate <= 128u; ++candidate)
+    {
+        if (nora_pps_rp_is_defined(candidate) &&
+            (nora_pps_read_output_rp(candidate) == want))
+        {
+            *rp = candidate;
+            return true;
+        }
+    }
+
+    return false;   /* no physical pin currently carries this output */
+}
+
 bool nora_pps_route_input(nora_pps_input_t input, nora_gpio_rp_t rp)
 {
     bool ok = true;
 
-    if (!nora_pps_rp_is_defined(rp))
+    /* Reject any RP that is neither a physical remappable pin nor a virtual one
+     * before writing. RPINRx input-selects take the RP NUMBER, and the virtual
+     * numbers are legal values there -- that is how a padless output reaches
+     * another peripheral's input -- so the check admits both bands and nothing
+     * between or beyond them. */
+    if (!nora_pps_rp_is_defined(rp) && !nora_pps_rpv_is_defined(rp))
     {
-        return false;   /* rp is not a physical remappable pin on this device */
+        return false;   /* rp is not a remappable pin, physical or virtual, here */
     }
 
     nora_pps_unlock();
@@ -1060,6 +1326,49 @@ bool nora_pps_route_input(nora_pps_input_t input, nora_gpio_rp_t rp)
 #endif
 #ifdef _ICM9R
     case NORA_PPS_INPUT_ICM9: _ICM9R = rp; break;
+#endif
+#ifdef _U3RXR
+    case NORA_PPS_INPUT_U3RX: _U3RXR = rp; break;
+#endif
+#ifdef _CLCINDR
+    case NORA_PPS_INPUT_CLCIND: _CLCINDR = rp; break;
+#endif
+#ifdef _CLCINER
+    case NORA_PPS_INPUT_CLCINE: _CLCINER = rp; break;
+#endif
+#ifdef _CLCINFR
+    case NORA_PPS_INPUT_CLCINF: _CLCINFR = rp; break;
+#endif
+#ifdef _CLCINGR
+    case NORA_PPS_INPUT_CLCING: _CLCINGR = rp; break;
+#endif
+#ifdef _CLCINHR
+    case NORA_PPS_INPUT_CLCINH: _CLCINHR = rp; break;
+#endif
+#ifdef _CLCINIR
+    case NORA_PPS_INPUT_CLCINI: _CLCINIR = rp; break;
+#endif
+#ifdef _CLCINJR
+    case NORA_PPS_INPUT_CLCINJ: _CLCINJR = rp; break;
+#endif
+#ifdef _REFI2R
+    case NORA_PPS_INPUT_REFI2: _REFI2R = rp; break;
+#endif
+#ifdef _CAN2RXR
+    case NORA_PPS_INPUT_CAN2RX: _CAN2RXR = rp; break;
+#endif
+    /* External interrupts. INT1..INT3 exist on both families; _INT4R is AK-only. */
+#ifdef _INT1R
+    case NORA_PPS_INPUT_INT1: _INT1R = rp; break;
+#endif
+#ifdef _INT2R
+    case NORA_PPS_INPUT_INT2: _INT2R = rp; break;
+#endif
+#ifdef _INT3R
+    case NORA_PPS_INPUT_INT3: _INT3R = rp; break;
+#endif
+#ifdef _INT4R
+    case NORA_PPS_INPUT_INT4: _INT4R = rp; break;
 #endif
     default:
         ok = false;   /* peripheral input not available on this device */

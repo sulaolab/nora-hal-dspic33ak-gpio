@@ -146,6 +146,9 @@ src/
   nora_pps_dspic33ak.c           dsPIC33AK backend
   nora_gpio_event.h            optional Change Notification (CN) event layer
   nora_gpio_event_dspic33ak.c    dsPIC33AK backend
+  nora_gpio_table.h            optional board pin list applied in one call
+  nora_gpio_table_dspic33ak.c    backend (nothing device-specific; goes through nora_gpio_config())
+  README.md                    the public GPIO/PPS contract, as the upstream project states it
 docs/
   gpio_event_design.md
   nora_migration.md            where these bytes come from, and what changed
@@ -155,9 +158,11 @@ docs/
 32-bit pointers and bit masks; the driver body drives any port through a
 per-port pointer table.
 
-The two optional companions are compiled only when their feature is used:
-compile `nora_gpio_event_dspic33ak.c` only when CN event support is needed, and
-`nora_pps_dspic33ak.c` only when the board routes peripherals through PPS.
+The optional companions are compiled only when their feature is used: compile
+`nora_gpio_event_dspic33ak.c` only when CN event support is needed,
+`nora_pps_dspic33ak.c` only when the board routes peripherals through PPS, and
+`nora_gpio_table_dspic33ak.c` only when a board states its fixed pins as a table
+(it exists for API parity with the dsPIC33CK NORA HAL, where two boards drove it).
 
 ## Pin addressing
 

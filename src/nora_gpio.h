@@ -223,6 +223,14 @@ nora_gpio_level_t nora_gpio_read_output(nora_gpio_pin_t pin);
 /* Remappable-pin number. RPn is 1-based; 0 means "no RP". */
 typedef uint8_t nora_gpio_rp_t;
 
+/*
+ * The remappable band, as a pair. Both ends are stated even though AK's low end
+ * is the trivial RP1, because the PAIR is what portable code needs: a range
+ * check or a sweep written as MIN..MAX compiles on both families, where one
+ * written as 1..MAX silently means "every RP" on AK and "wrong" on CK, whose
+ * band starts at RP32 (RB0 -- ports A and E have no RPn at all).
+ */
+#define NORA_GPIO_RP_MIN  (1u)     /* RP1 = RA0 (RPn = packed_pin + 1), contiguous from 1 */
 /* 8 ports x 16 = 128 encodable RP numbers. */
 #define NORA_GPIO_RP_MAX  (128u)
 
